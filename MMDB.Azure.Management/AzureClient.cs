@@ -17,7 +17,7 @@ using System.Xml.Serialization;
 
 namespace MMDB.Azure.Management
 {
-    public class AzureClient
+    public class AzureClient : IAzureClient
     {
         private readonly string _subscriptionIdentifier;
         private readonly string _managementCertificate;
@@ -58,7 +58,7 @@ namespace MMDB.Azure.Management
             }
         }
 
-        public void CreateCloudService(string serviceName, string label=null, string location=null, string affinityGroup=null)
+        public HostedService CreateCloudService(string serviceName, string label=null, string location=null, string affinityGroup=null)
         {
             if(!string.IsNullOrEmpty(location) && !string.IsNullOrEmpty(affinityGroup))
             {
@@ -136,6 +136,8 @@ namespace MMDB.Azure.Management
                     throw;
                 }
             }
+
+            return GetCloudService(serviceName);
         }
 
         private Location GetDefaultLocation()
@@ -188,9 +190,9 @@ namespace MMDB.Azure.Management
             }
         }
 
-        public HostedService GetHostedService(string serviceName)
+        public HostedService GetCloudService(string serviceName)
         {
-            string url = string.Format("https://management.core.windows.net/{0}/services/hostedservices/{1}?embed-detail=true", _subscriptionIdentifier, Uri.EscapeDataString(serviceName));
+            string url = string.Format("https://management.core.windows.net/{0}/services/hostedservices/{1}?embed-detail=true", _subscriptionIdentifier, Uri.EscapeUriString(serviceName));
             var request = CreateRequest(url, _managementCertificate);
             try 
             {
@@ -617,6 +619,19 @@ namespace MMDB.Azure.Management
                 Thread.Sleep(1000);
             }
             throw new TimeoutException(string.Format("Timeout (0 seconds) waiting for status {1}, last statuses {2}", timeout.TotalSeconds, status, string.Join("|", lastStatusList.Select(i=>i.ToString()))));
+        }
+
+        public void DeleteCloudService(string serviceName)
+        {
+            string url = string.Format("https://management.core.windows.net/{0}/services/hostedservices/{1}?comp=media", _subscriptionIdentifier, Uri.EscapeUriString(serviceName));
+            var request = CreateRequest(url, _managementCertificate);
+            request.Method = "DELETE";
+            using (var response = request.GetResponse())
+            using (var responseStream = response.GetResponseStream())
+            using (var reader = new StreamReader(responseStream))
+            {
+                var xml = reader.ReadToEnd();
+            }
         }
     }
 }

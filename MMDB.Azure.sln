@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{757A62
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MMDB.Azure.Management.Tests", "MMDB.Azure.Management.Tests\MMDB.Azure.Management.Tests.csproj", "{75E01913-D6A2-4955-A39E-C2DB5BF5FFEF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,6 +24,10 @@ Global
 		{BEEA07FC-5596-4040-8D6E-3DA7BDD986E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BEEA07FC-5596-4040-8D6E-3DA7BDD986E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BEEA07FC-5596-4040-8D6E-3DA7BDD986E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75E01913-D6A2-4955-A39E-C2DB5BF5FFEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75E01913-D6A2-4955-A39E-C2DB5BF5FFEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75E01913-D6A2-4955-A39E-C2DB5BF5FFEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75E01913-D6A2-4955-A39E-C2DB5BF5FFEF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
