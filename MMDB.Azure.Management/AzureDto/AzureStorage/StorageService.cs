@@ -11,7 +11,9 @@ namespace MMDB.Azure.Management.AzureDto.AzureStorage
     {
         public string Url { get; set; }
         public string ServiceName { get; set; }
-        public StorageServiceProperties StorageServiceProperties { get; set; }
+
+        [XmlElement("StorageServiceProperties")]
+        public StorageServiceProperties Properties { get; set; }
 
         [XmlArray("ExtendedProperties")]
         public List<ExtendedProperty> ExtendedPropertyList { get; set; }

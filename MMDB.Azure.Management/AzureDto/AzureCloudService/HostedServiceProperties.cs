@@ -11,6 +11,7 @@ namespace MMDB.Azure.Management.AzureDto.AzureCloudService
     {
         public enum EnumHostedServiceStatus
         {
+            Unknown,
             Creating,
             Created,
             Deleting,

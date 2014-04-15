@@ -73,6 +73,9 @@
   <ItemGroup>
     <Compile Include="AzureClient.cs" />
     <Compile Include="AzureDto\AvailabilityResponse.cs" />
+    <Compile Include="AzureDto\AzureAffinityGroup\AffinityGroup.cs" />
+    <Compile Include="AzureDto\AzureAffinityGroup\AffinityGroupsResponse.cs" />
+    <Compile Include="AzureDto\AzureAffinityGroup\CreateAffinityGroupRequest.cs" />
     <Compile Include="AzureDto\AzureCloudService\AllRoles.cs" />
     <Compile Include="AzureDto\AzureCloudService\ConfigurationSet.cs" />
     <Compile Include="AzureDto\AzureCloudService\CreateDeploymentRequest.cs" />

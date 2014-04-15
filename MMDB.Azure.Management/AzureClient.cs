@@ -14,6 +14,7 @@ using System.Text;
 using System.Threading;
 using System.Xml;
 using System.Xml.Serialization;
+using MMDB.Azure.Management.AzureDto.AzureAffinityGroup;
 
 namespace MMDB.Azure.Management
 {
@@ -64,7 +65,7 @@ namespace MMDB.Azure.Management
             {
                 throw new ArgumentException("Location and AffinityGroup cannot both be specified");
             }
-            if(string.IsNullOrEmpty(location) && string.IsNullOrEmpty(location))
+            if(string.IsNullOrEmpty(location) && string.IsNullOrEmpty(affinityGroup))
             {
                 var locationItem = GetDefaultLocation();
                 if(locationItem == null)
@@ -159,7 +160,7 @@ namespace MMDB.Azure.Management
             return null;
         }
 
-        private List<Location> GetLocationList()
+        public List<Location> GetLocationList()
         {
             string url = string.Format("https://management.core.windows.net/{0}/locations", _subscriptionIdentifier);
             var request = CreateRequest(url, _managementCertificate);
@@ -231,43 +232,7 @@ namespace MMDB.Azure.Management
             }
         }
 
-        public StorageService GetStorageAccount(string storageAccountName)
-        {
-            string url = string.Format("https://management.core.windows.net/{0}/services/storageservices/{1}", _subscriptionIdentifier, Uri.EscapeUriString(storageAccountName));
-            var request = CreateRequest(url, _managementCertificate);
-            try
-            {
-                using (var response = request.GetResponse())
-                using (var responseStream = response.GetResponseStream())
-                using (var reader = new StreamReader(responseStream))
-                {
-                    var xml = reader.ReadToEnd();
-                    var serializer = new XmlSerializer(typeof(StorageService), "http://schemas.microsoft.com/windowsazure");
-                    var returnValue = (StorageService)serializer.Deserialize(new StringReader(xml));
-                    return returnValue;
-                }
-            }
-            catch (WebException ex)
-            {
-                if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.NotFound)
-                {
-                    return null;
-                }
-
-                var resp = ex.Response;
-                var responseDetails = (new System.IO.StreamReader(resp.GetResponseStream(), true)).ReadToEnd();
-                if (!string.IsNullOrEmpty(responseDetails))
-                {
-                    throw new Exception("Failed to create storage account, Details: " + responseDetails, ex);
-                }
-                else
-                {
-                    throw;
-                }
-            }
-        }
-
-        public void CreateStorageAccount(string storageAccountName, string label=null, string location=null, string affinityGroup=null)
+        public StorageService CreateStorageAccount(string storageAccountName, string label = null, string location = null, string affinityGroup = null)
         {
             if (!string.IsNullOrEmpty(location) && !string.IsNullOrEmpty(affinityGroup))
             {
@@ -347,8 +312,98 @@ namespace MMDB.Azure.Management
                     throw;
                 }
             }
+            return GetStorageAccount(storageAccountName);
         }
 
+        public StorageService GetStorageAccount(string storageAccountName)
+        {
+            string url = string.Format("https://management.core.windows.net/{0}/services/storageservices/{1}", _subscriptionIdentifier, Uri.EscapeUriString(storageAccountName));
+            var request = CreateRequest(url, _managementCertificate);
+            try
+            {
+                using (var response = request.GetResponse())
+                using (var responseStream = response.GetResponseStream())
+                using (var reader = new StreamReader(responseStream))
+                {
+                    var xml = reader.ReadToEnd();
+                    var serializer = new XmlSerializer(typeof(StorageService), "http://schemas.microsoft.com/windowsazure");
+                    var returnValue = (StorageService)serializer.Deserialize(new StringReader(xml));
+                    return returnValue;
+                }
+            }
+            catch (WebException ex)
+            {
+                if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+
+                var resp = ex.Response;
+                var responseDetails = (new System.IO.StreamReader(resp.GetResponseStream(), true)).ReadToEnd();
+                if (!string.IsNullOrEmpty(responseDetails))
+                {
+                    throw new Exception("Failed to create storage account, Details: " + responseDetails, ex);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
+
+        public void DeleteStorageAccount(string storageAccountName, bool waitForDelete=false, TimeSpan timeout=default(TimeSpan))
+        {
+            string url = string.Format("https://management.core.windows.net/{0}/services/storageservices/{1}", _subscriptionIdentifier, Uri.EscapeUriString(storageAccountName));
+            var request = CreateRequest(url, _managementCertificate);
+            request.Method = "DELETE";
+            try 
+            {
+                using (var response = request.GetResponse())
+                using (var responseStream = response.GetResponseStream())
+                using (var reader = new StreamReader(responseStream))
+                {
+                    var xml = reader.ReadToEnd();
+                }
+            }
+            catch (WebException webEx)
+            {
+                var resp = webEx.Response;
+                var responseDetails = (new System.IO.StreamReader(resp.GetResponseStream(), true)).ReadToEnd();
+                if (!string.IsNullOrEmpty(responseDetails))
+                {
+                    throw new Exception("Failed to delete storage account, Details: " + responseDetails, webEx);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            if (waitForDelete)
+            {
+                if (timeout == default(TimeSpan))
+                {
+                    timeout = TimeSpan.FromMinutes(5);
+                }
+                DateTime start = DateTime.UtcNow;
+                DateTime killTime = start.Add(timeout);
+                StorageServiceProperties.EnumStorageServiceStatus lastStatus = StorageServiceProperties.EnumStorageServiceStatus.Unknown;
+                while (DateTime.UtcNow < killTime)
+                {
+                    var storageAccount = GetStorageAccount(storageAccountName);
+                    if (storageAccount == null)
+                    {
+                        return;
+                    }
+                    if (storageAccount.Properties.Status == StorageServiceProperties.EnumStorageServiceStatus.Deleted)
+                    {
+                        return;
+                    }
+                    lastStatus = storageAccount.Properties.Status.GetValueOrDefault();
+                    Thread.Sleep(1000);
+                }
+                throw new TimeoutException(string.Format("Timeout (0 seconds) waiting for status {1}, last status {2}", timeout.TotalSeconds, HostedServiceProperties.EnumHostedServiceStatus.Deleted, lastStatus));
+            }
+        }
         public bool CheckStorageAccountNameAvailability(string storageAccountName, out string message)
         {
             string url = string.Format("https://management.core.windows.net/{0}/services/storageservices/operations/isavailable/{1}", _subscriptionIdentifier, Uri.EscapeUriString(storageAccountName));
@@ -382,11 +437,42 @@ namespace MMDB.Azure.Management
 
         public string UploadBlobFile(string storageAccountName, string accessKey, string localPath, string containerName)
         {
-            var connectionString = GetBlogConnectionString(storageAccountName, accessKey);
+            var connectionString = GetBlobConnectionString(storageAccountName, accessKey);
             var account = CloudStorageAccount.Parse(connectionString);
             var blobClient = account.CreateCloudBlobClient();
             var container = blobClient.GetContainerReference(containerName);
-            container.CreateIfNotExists();
+            try 
+            {
+                container.CreateIfNotExists();
+            }
+            catch(StorageException storageEx)
+            {
+                if(storageEx.InnerException != null && storageEx.InnerException is WebException)
+                {
+                    var webEx = (WebException)storageEx.InnerException;
+                    var resp = webEx.Response;
+                    using(var stream  = resp.GetResponseStream())
+                    {
+                        if(stream.CanRead)
+                        {
+                            var responseDetails = (new System.IO.StreamReader(stream, true)).ReadToEnd();
+                            if (!string.IsNullOrEmpty(responseDetails))
+                            {
+                                throw new Exception(string.Format("Failed to create/get storage container \"{0}\", Details: {1}", containerName, responseDetails), webEx);
+                            }
+                        }
+                    }
+                    if(resp is HttpWebResponse)
+                    {
+                        var httpResponse = (HttpWebResponse)resp;
+                        if(!string.IsNullOrEmpty(httpResponse.StatusDescription))
+                        {
+                            throw new Exception(string.Format("Failed to create/get storage container \"{0}\", Details: {1}", containerName, httpResponse.StatusDescription), webEx);
+                        }
+                    }
+                }
+                throw;
+            }
             
             string targetFileName =  string.Format("{0}_{1}_{2}__{3}_{4}_{5}__{6}__{7}",
                                                         DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.Day,
@@ -398,7 +484,7 @@ namespace MMDB.Azure.Management
             return blob.Uri.ToString();
         }
 
-        private string GetBlogConnectionString(string storageAccountName, string accessKey)
+        private string GetBlobConnectionString(string storageAccountName, string accessKey)
         {
             return string.Format("DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1}", storageAccountName, accessKey);
         }
@@ -552,23 +638,27 @@ namespace MMDB.Azure.Management
             }
         }
 
-        public StorageService WaitForStorageAccountStatus(string storageAccountName, StorageServiceProperties.EnumStorageServiceStatus status, TimeSpan timeout)
+        public StorageService WaitForStorageAccountStatus(string storageAccountName, StorageServiceProperties.EnumStorageServiceStatus status, TimeSpan timeout=default(TimeSpan))
         {
             DateTime start = DateTime.UtcNow;
+            if(timeout == default(TimeSpan))
+            {
+                timeout = TimeSpan.FromMinutes(5);
+            }
             DateTime killTime = start.Add(timeout);
             StorageServiceProperties.EnumStorageServiceStatus lastStatus = StorageServiceProperties.EnumStorageServiceStatus.Unknown;
             while(DateTime.UtcNow < killTime)
             {
                 var storageAccount = GetStorageAccount(storageAccountName);
-                if(storageAccount == null || storageAccount.StorageServiceProperties == null)
+                if(storageAccount == null || storageAccount.Properties == null)
                 {
                     throw new Exception("Failed to find storage account " + storageAccountName);
                 }
-                if(storageAccount.StorageServiceProperties.Status == status)
+                if(storageAccount.Properties.Status == status)
                 {
                     return storageAccount;
                 }
-                lastStatus = storageAccount.StorageServiceProperties.Status.GetValueOrDefault();
+                lastStatus = storageAccount.Properties.Status.GetValueOrDefault();
                 Thread.Sleep(1000);
             }
             throw new TimeoutException(string.Format("Timeout (0 seconds) waiting for status {1}, last status {2}", timeout.TotalSeconds, status, lastStatus));
@@ -621,7 +711,7 @@ namespace MMDB.Azure.Management
             throw new TimeoutException(string.Format("Timeout (0 seconds) waiting for status {1}, last statuses {2}", timeout.TotalSeconds, status, string.Join("|", lastStatusList.Select(i=>i.ToString()))));
         }
 
-        public void DeleteCloudService(string serviceName)
+        public void DeleteCloudService(string serviceName, bool waitForDelete=false, TimeSpan timeout=default(TimeSpan))
         {
             string url = string.Format("https://management.core.windows.net/{0}/services/hostedservices/{1}?comp=media", _subscriptionIdentifier, Uri.EscapeUriString(serviceName));
             var request = CreateRequest(url, _managementCertificate);
@@ -632,6 +722,194 @@ namespace MMDB.Azure.Management
             {
                 var xml = reader.ReadToEnd();
             }
+            if(waitForDelete)
+            {
+                if(timeout == default(TimeSpan))
+                {
+                    timeout = TimeSpan.FromMinutes(5);
+                }
+                DateTime start = DateTime.UtcNow;
+                DateTime killTime = start.Add(timeout);
+                HostedServiceProperties.EnumHostedServiceStatus lastStatus = HostedServiceProperties.EnumHostedServiceStatus.Unknown;
+                while (DateTime.UtcNow < killTime)
+                {
+                    var service = GetCloudService(serviceName);
+                    if(service == null)
+                    {
+                        return;
+                    }
+                    if (service.Properties.Status == HostedServiceProperties.EnumHostedServiceStatus.Deleted)
+                    {
+                        return;
+                    }
+                    lastStatus = service.Properties.Status.GetValueOrDefault();
+                    Thread.Sleep(1000);
+                }
+                throw new TimeoutException(string.Format("Timeout (0 seconds) waiting for status {1}, last status {2}", timeout.TotalSeconds, HostedServiceProperties.EnumHostedServiceStatus.Deleted, lastStatus));
+            }
+        }
+
+        public List<AffinityGroup> GetAffinityGroupList()
+        {
+            string url = string.Format("https://management.core.windows.net/{0}/affinitygroups", _subscriptionIdentifier);
+            var request = CreateRequest(url, _managementCertificate);
+            using (var response = request.GetResponse())
+            using (var responseStream = response.GetResponseStream())
+            using (var reader = new StreamReader(responseStream))
+            {
+                var xml = reader.ReadToEnd();
+                var serializer = new XmlSerializer(typeof(AffinityGroupsResponse), "http://schemas.microsoft.com/windowsazure");
+                var returnValue = (AffinityGroupsResponse)serializer.Deserialize(new StringReader(xml));
+                return returnValue.AffinityGroupList;
+            }
+        }
+
+
+
+        public AffinityGroup CreateAffinityGroup(string affinityGroupName, string label = null, string description = null, string location = null)
+        {
+            if (string.IsNullOrEmpty(location))
+            {
+                var locationItem = GetDefaultLocation();
+                if (locationItem == null)
+                {
+                    throw new Exception("Unable to find default location");
+                }
+                location = locationItem.Name;
+            }
+            string base64Label;
+            if (!string.IsNullOrEmpty(label))
+            {
+                base64Label = Convert.ToBase64String(Encoding.UTF8.GetBytes(label));
+            }
+            else
+            {
+                base64Label = Convert.ToBase64String(Encoding.UTF8.GetBytes(affinityGroupName));
+            }
+            var requestData = new CreateAffinityGroupRequest
+            {
+                Name = affinityGroupName,
+                Label = base64Label,
+                Description = description,
+                Location = location,
+            };
+            string requestXml;
+            using (var writer = new Utf8StringWriter())
+            {
+                var serializer = new XmlSerializer(typeof(CreateAffinityGroupRequest), "http://schemas.microsoft.com/windowsazure");
+                serializer.Serialize(writer, requestData);
+                requestXml = writer.ToString();
+            }
+//var sb = new StringBuilder();
+//sb.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+//sb.AppendLine("<CreateAffinityGroupRequest xmlns=\"http://schemas.microsoft.com/windowsazure\">");
+//sb.AppendLine(string.Format("      <Name>{0}</Name>", affinityGroupName));
+//sb.AppendLine(string.Format("      <Label>{0}</Label>", base64Label));
+//sb.AppendLine(string.Format("      <Description>{0}</Description>", description));
+//sb.AppendLine(string.Format("      <Location>{0}</Location>", location));
+//sb.AppendLine("</CreateAffinityGroup>");
+//            requestXml = sb.ToString();
+
+            string url = string.Format("https://management.core.windows.net/{0}/affinitygroups", _subscriptionIdentifier);
+            var request = CreateRequest(url, _managementCertificate);
+            request.Method = "POST";
+            using (var stream = request.GetRequestStream())
+            using (var writer = new StreamWriter(stream))
+            {
+                writer.Write(requestXml);
+            }
+
+            try
+            {
+                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                using (var responseStream = response.GetResponseStream())
+                using (var reader = new StreamReader(responseStream))
+                {
+                    string responseData = reader.ReadToEnd();
+                    if (response.StatusCode != HttpStatusCode.Created)
+                    {
+                        string message = string.Format("Failed to create affinity group, return status {0}", response.StatusCode);
+                        if (!string.IsNullOrEmpty(responseData))
+                        {
+                            message += ", Details: " + responseData;
+                        }
+                        throw new Exception(message);
+                    }
+                }
+            }
+            catch (WebException webEx)
+            {
+                var resp = webEx.Response;
+                var responseDetails = (new System.IO.StreamReader(resp.GetResponseStream(), true)).ReadToEnd();
+                if (!string.IsNullOrEmpty(responseDetails))
+                {
+                    throw new Exception("Failed to create affinity group, Details: " + responseDetails, webEx);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return GetAffinityGroup(affinityGroupName);
+        }
+
+        public AffinityGroup GetAffinityGroup(string affinityGroupName)
+        {
+            string url = string.Format("https://management.core.windows.net/{0}/affinitygroups/{1}", _subscriptionIdentifier, Uri.EscapeUriString(affinityGroupName));
+            var request = CreateRequest(url, _managementCertificate);
+            try
+            {
+                using (var response = request.GetResponse())
+                using (var responseStream = response.GetResponseStream())
+                using (var reader = new StreamReader(responseStream))
+                {
+                    var xml = reader.ReadToEnd();
+                    var serializer = new XmlSerializer(typeof(AffinityGroup), "http://schemas.microsoft.com/windowsazure");
+                    var returnValue = (AffinityGroup)serializer.Deserialize(new StringReader(xml));
+                    return returnValue;
+                }
+            }
+            catch (WebException ex)
+            {
+                if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+                throw;
+            }
+        }
+
+
+        public void DeleteAffinityGroup(string affinityGroupName)
+        {
+            string url = string.Format("https://management.core.windows.net/{0}/affinitygroups/{1}", _subscriptionIdentifier, Uri.EscapeUriString(affinityGroupName));
+            var request = CreateRequest(url, _managementCertificate);
+            request.Method = "DELETE";
+            try 
+            {
+                using (var response = request.GetResponse())
+                using (var responseStream = response.GetResponseStream())
+                using (var reader = new StreamReader(responseStream))
+                {
+                    var xml = reader.ReadToEnd();
+                }
+            }
+            catch (WebException webEx)
+            {
+                var resp = webEx.Response;
+                var responseDetails = (new System.IO.StreamReader(resp.GetResponseStream(), true)).ReadToEnd();
+                if (!string.IsNullOrEmpty(responseDetails))
+                {
+                    throw new Exception("Failed to delete affinity group, Details: " + responseDetails, webEx);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
         }
     }
+
 }
