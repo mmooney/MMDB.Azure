@@ -9,7 +9,7 @@
     <projectUrl>https://github.com/mmooney/MMDB.Azure</projectUrl>
     <iconUrl>http://www.gravatar.com/avatar/583bdba0c32e151c9d2eafdd32555c17.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>$description$</description>
+    <description>A Really Easy Azure Management Library</description>
     <copyright>Copyright 2014</copyright>
     <tags>.net mmdb azure management rest api deploy</tags>
   </metadata>
