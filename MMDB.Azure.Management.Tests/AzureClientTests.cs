@@ -43,7 +43,11 @@ namespace MMDB.Azure.Management.Tests
                 var managementCertificateNode = xml.SelectSingleNode("/PublishData/PublishProfile/@ManagementCertificate");
                 if(managementCertificateNode == null || string.IsNullOrEmpty(managementCertificateNode.Value))
                 {
-                    throw new Exception("Missing /PublishData/PublishProfile/@ManagementCertificate in " + settingsFilePath);
+                    managementCertificateNode = xml.SelectSingleNode("/PublishData/PublishProfile/Subscription/@ManagementCertificate");
+                    if (managementCertificateNode == null || string.IsNullOrEmpty(managementCertificateNode.Value))
+                    {
+                        throw new Exception("Missing /PublishData/PublishProfile/@ManagementCertificate in " + settingsFilePath);
+                    }
                 }
                 testData.AzureManagementCertificate = managementCertificateNode.Value;
 
