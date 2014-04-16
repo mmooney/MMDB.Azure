@@ -114,6 +114,7 @@
     <Compile Include="Utf8StringWriter.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="MMDB.Azure.Management.nuspec" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

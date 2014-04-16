@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("MMDB.Azure.Management")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("MMDB Azure Management")]
+[assembly: AssemblyDescription("A Really Easy Azure Management Library")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("MMDB Solutions, LLC")]
 [assembly: AssemblyProduct("MMDB.Azure.Management")]
-[assembly: AssemblyCopyright("Copyright ©  2014")]
+[assembly: AssemblyCopyright("Copyright ©  2014 MMDB Solutions")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
