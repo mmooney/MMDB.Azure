@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
-<package >
+<package>
   <metadata>
+    <id>MMDB.Azure.Management</id>
     <version>$version$</version>
     <title>MMDB Solutions, LLC</title>
     <authors>Mike Mooney</authors>
