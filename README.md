@@ -22,7 +22,7 @@ That will send you to the Azure site, prompt you to log in (if you're not logged
 For more information, see http://mooneyblog.mmdbsolutions.com/index.php/2013/01/23/windows-azure-4-deploying-via-powershell/
 
 ### Basic Usage ###
-Creating a Cloud Service:
+#### Creating a Cloud Service:####
 ```C#
     string subscriptionIdentifier = "FromYourPublishSettingsFile";
     string managementCertificate = "AlsoFromYourPublishSettingsFile";
@@ -39,4 +39,56 @@ Creating a Cloud Service:
     var service = client.CreateCloudService(serviceName);
 
     Console.WriteLine("Successfully created service " + serviceName  + "!  URL = " + service.Url);
+```
+
+#### Creating a Cloud Storage Account:####
+```C#
+    string subscriptionIdentifier = "FromYourPublishSettingsFile";
+    string managementCertificate = "AlsoFromYourPublishSettingsFile";
+    string storageAccountName = "MyNewStorageAccount";
+    var client = new AzureClient(subscriptionIdentifier, managementCertificate);
+                
+    string message;
+    bool nameIsAvailable = client.CheckStorageAccountNameAvailability(storageAccountName, out message)
+    if(!nameIsAvailable)
+    {
+        throw new Exception("Cannot create " + storageAccountName + ", service name is not available!  Details" + message);
+    }
+
+    var storageAccount = client.CreateCloudService(storageAccountName);
+
+    //Initial setup is complete, but it is still resolving DNS, etc
+    Console.WriteLine("Initial creation for storage account " + storageAccountName + " complete!  URL = " + storageAccount.Url);
+
+    //Wait for the entire setup to be complete
+    client.WaitForStorageAccountStatus(storageAccountName, StorageServiceProperties.EnumStorageServiceStatus.Created, timeout:TimeSpan.FromMinutes(2));
+    Console.WriteLine("Final setup " + storageAccountName + ", your storage account is ready to go");
+```
+
+#### Putting It All Together, Deploying an Azure Package ####
+```C#
+    string subscriptionIdentifier = "FromYourPublishSettingsFile";
+    string managementCertificate = "AlsoFromYourPublishSettingsFile";
+    var client = new AzureClient(subscriptionIdentifier, managementCertificate);
+
+    string serviceName = "MyNewServiceName";
+    var service = client.CreateCloudService(serviceName);
+
+    string storageAccountName = "MyNewStorageAccount";
+    var storageAccount = client.CreateStorageAccount(storageAccountName);
+    client.WaitForStorageAccountStatus(storageAccountName, StorageServiceProperties.EnumStorageServiceStatus.Created);
+
+    string azureContainerName = "MyDeploymentContainer";
+    string azurePackageFile = "C:\\Build\\MyAzurePackage.cspkg";
+    string azureConfigFile = "C:\\Build\\MyAzureConfig.cscfg";
+    string azureConfigData = File.ReadAllText(azureConfigFile);
+    string deploymentSlot = "staging";
+
+    var storageKeys = client.GetStorageAccountKeys(storageAccountName);
+    var blobUrl = client.UploadBlobFile(storageAccountName, storageKeys.Primary, azurePackageFile, azureContainerName);
+
+    var deployment = client.CreateCloudServiceDeployment(serviceName, blobUrl, azureConfigData, deploymentSlot);
+    client.WaitForCloudServiceDeploymentStatus(serviceName, deploymentSlot, DeploymentItem.EnumDeploymentItemStatus.Running, TimeSpan.FromMinutes(5));
+    client.WaitForAllCloudServiceInstanceStatus(serviceName, deploymentSlot, RoleInstance.EnumInstanceStatus.ReadyRole, TimeSpan.FromMinutes(10));
+    return deployment;
 ```
