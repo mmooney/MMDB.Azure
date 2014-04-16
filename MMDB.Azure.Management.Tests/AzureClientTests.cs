@@ -82,6 +82,26 @@ namespace MMDB.Azure.Management.Tests
             {
                 return this.Fixture.Create<string>("StorageAccountName").Replace("-","").Substring(0,24).ToLower();
             }
+
+            public DeploymentItem CreateDeployment(string serviceName, string storageAccountName, string deploymentSlot, string blobFileName, string containerName)
+            {
+                var storageAccount = this.Sut.CreateStorageAccount(storageAccountName);
+                Assert.IsNotNull(storageAccount);
+                Assert.AreEqual(storageAccountName, storageAccount.ServiceName);
+                this.Sut.WaitForStorageAccountStatus(storageAccountName, StorageServiceProperties.EnumStorageServiceStatus.Created);
+
+                File.WriteAllBytes(blobFileName, TestDataResources.MMDB_AzureSample_Web_Azure);
+                var keys = this.Sut.GetStorageAccountKeys(storageAccountName);
+                var blobUrl = this.Sut.UploadBlobFile(storageAccountName, keys.Primary, blobFileName, containerName);
+
+                var service = this.Sut.CreateCloudService(serviceName);
+
+                var deployment = this.Sut.CreateCloudServiceDeployment(serviceName, blobUrl, TestDataResources.ServiceConfiguration_Cloud, deploymentSlot);
+                Assert.IsNotNull(deployment);
+                this.Sut.WaitForCloudServiceDeploymentStatus(serviceName, deploymentSlot, DeploymentItem.EnumDeploymentItemStatus.Running);
+                this.Sut.WaitForAllCloudServiceInstanceStatus(serviceName, deploymentSlot, RoleInstance.EnumInstanceStatus.ReadyRole, TimeSpan.FromMinutes(10));
+                return deployment;
+            }
         }
 
         public class GetCloudServiceList
@@ -721,6 +741,183 @@ namespace MMDB.Azure.Management.Tests
                 using(var response = request.GetResponse())
                 {
                     //yay
+                }
+            }
+        }
+
+        public class GetCloudServiceDeploymentList
+        {
+            [Test]
+            public void InvalidServiceName_ThrowsException()
+            {
+                var testData = TestData.Create();
+                var serviceName = testData.Fixture.Create<string>("ServiceName");
+                try
+                {
+                    Assert.Throws<FileNotFoundException>(()=>testData.Sut.GetCloudServiceDeploymentList(serviceName));
+                }
+                finally
+                {
+                    try
+                    {
+                        testData.Sut.DeleteCloudService(serviceName);
+                    }
+                    catch { }
+                }
+            }
+
+            [Test]
+            public void ValidServiceName_NoDeployments_ReturnsEmptyList()
+            {
+                var testData = TestData.Create();
+                var serviceName = testData.Fixture.Create<string>("ServiceName");
+                try
+                {
+                    testData.Sut.CreateCloudService(serviceName);
+
+                    var result = testData.Sut.GetCloudServiceDeploymentList(serviceName);
+
+                    Assert.IsNotNull(result);
+                    Assert.IsEmpty(result);
+                }
+                finally
+                {
+                    try
+                    {
+                        testData.Sut.DeleteCloudService(serviceName);
+                    }
+                    catch { }
+                }
+            }
+
+            [Test]
+            public void ValidServiceName_WithDeployment_ReturnsItem()
+            {
+                var testData = TestData.Create();
+                var serviceName = testData.Fixture.Create<string>("ServiceName");
+                var storageAccountName = testData.CreateStorageAccountName();
+                var deploymentSlot = "production";
+                var blobFileName = Path.GetTempFileName();
+                var containerName = testData.Fixture.Create<string>("Container").ToLower();
+                try
+                {
+                    var deployment = testData.CreateDeployment(serviceName, storageAccountName, deploymentSlot, blobFileName, containerName);
+
+                    var deploymentList = testData.Sut.GetCloudServiceDeploymentList(serviceName);
+                    Assert.IsNotNull(deploymentList);
+                    Assert.AreEqual(1, deploymentList.Count);
+                    Assert.AreEqual(deployment.Name, deploymentList[0].Name);
+                }
+                finally
+                {
+                    try 
+                    {
+                        if(File.Exists(blobFileName))
+                        {
+                            File.Delete(blobFileName);
+                        }
+                    }
+                    catch {}
+                    try
+                    {
+                        testData.Sut.DeleteCloudService(serviceName);
+                    }
+                    catch {}
+                    try 
+                    {
+                        testData.Sut.DeleteStorageAccount(storageAccountName);
+                    }
+                    catch {}
+                }
+            }
+
+        }
+
+        public class GetCloudServiceDeployment
+        {
+            [Test]
+            public void InvalidServiceName_ReturnsNull()
+            {
+                var testData = TestData.Create();
+                var serviceName = testData.Fixture.Create<string>("ServiceName");
+                var deploymentSlot = "production";
+                try
+                {
+                    var result = testData.Sut.GetCloudServiceDeployment(serviceName, deploymentSlot);
+
+                    Assert.IsNull(result);
+                }
+                finally
+                {
+                    try
+                    {
+                        testData.Sut.DeleteCloudService(serviceName);
+                    }
+                    catch { }
+                }
+            }
+
+            [Test]
+            public void ValidServiceName_InvalidSlot_ReturnsNull()
+            {
+                var testData = TestData.Create();
+                var serviceName = testData.Fixture.Create<string>("ServiceName");
+                var deploymentSlot = "production";
+                try
+                {
+                    var service = testData.Sut.CreateCloudService(serviceName);
+
+                    var result = testData.Sut.GetCloudServiceDeployment(serviceName, deploymentSlot);
+
+                    Assert.IsNull(result);
+                }
+                finally
+                {
+                    try
+                    {
+                        testData.Sut.DeleteCloudService(serviceName);
+                    }
+                    catch { }
+                }
+            }
+
+            [Test]
+            public void ValidServiceName_ValidSlot_ReturnItem()
+            {
+                var testData = TestData.Create();
+                var serviceName = testData.Fixture.Create<string>("ServiceName");
+                var storageAccountName = testData.CreateStorageAccountName();
+                var deploymentSlot = "production";
+                var blobFileName = Path.GetTempFileName();
+                var containerName = testData.Fixture.Create<string>("Container").ToLower();
+                try
+                {
+                    var deployment = testData.CreateDeployment(serviceName, storageAccountName, deploymentSlot, blobFileName, containerName);
+
+                    var result = testData.Sut.GetCloudServiceDeployment(serviceName, deploymentSlot);
+
+                    Assert.IsNotNull(result);
+                }
+                finally
+                {
+                    try
+                    {
+                        if (File.Exists(blobFileName))
+                        {
+                            File.Delete(blobFileName);
+                        }
+                    }
+                    catch { }
+                    try
+                    {
+                        testData.Sut.DeleteCloudService(serviceName);
+                    }
+                    catch { }
+                    try
+                    {
+                        testData.Sut.DeleteStorageAccount(storageAccountName);
+                    }
+                    catch { }
                 }
             }
         }

@@ -489,7 +489,7 @@ namespace MMDB.Azure.Management
             return string.Format("DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1}", storageAccountName, accessKey);
         }
 
-        public void CreateCloudServiceDeployment(string serviceName, string blobUrl, string configurationData, string deploymentSlot)
+        public DeploymentItem CreateCloudServiceDeployment(string serviceName, string blobUrl, string configurationData, string deploymentSlot)
         {
             string base64Label = Convert.ToBase64String(Encoding.UTF8.GetBytes(serviceName));
             string base64Configuation = Convert.ToBase64String(Encoding.UTF8.GetBytes(configurationData));
@@ -549,6 +549,7 @@ namespace MMDB.Azure.Management
                     throw;
                 }
             }
+            return GetCloudServiceDeployment(serviceName, deploymentSlot);
         }
 
         public void UpgradeCloudServiceDeployment(string serviceName, string blobUrl, string configurationData, string deploymentSlot)
@@ -612,6 +613,15 @@ namespace MMDB.Azure.Management
             }
         }
 
+        public List<DeploymentItem> GetCloudServiceDeploymentList(string serviceName)
+        {
+            var service = GetCloudService(serviceName);
+            if(service == null)
+            {
+                throw new FileNotFoundException("Could not find service " + serviceName);
+            }
+            return service.DeploymentList;
+        }
         public DeploymentItem GetCloudServiceDeployment(string serviceName, string deploymentSlot)
         {
             string url = string.Format("https://management.core.windows.net/{0}/services/hostedservices/{1}/deploymentslots/{2}", _subscriptionIdentifier, serviceName, deploymentSlot);
@@ -664,8 +674,12 @@ namespace MMDB.Azure.Management
             throw new TimeoutException(string.Format("Timeout (0 seconds) waiting for status {1}, last status {2}", timeout.TotalSeconds, status, lastStatus));
         }
 
-        public DeploymentItem WaitForCloudServiceDeploymentStatus(string serviceName, string deploymentSlot, DeploymentItem.EnumDeploymentItemStatus status, TimeSpan timeout)
+        public DeploymentItem WaitForCloudServiceDeploymentStatus(string serviceName, string deploymentSlot, DeploymentItem.EnumDeploymentItemStatus status, TimeSpan timeout=default(TimeSpan))
         {
+            if(timeout == default(TimeSpan))
+            {
+                timeout = TimeSpan.FromMinutes(5);
+            }
             DateTime start = DateTime.UtcNow;
             DateTime killTime = start.Add(timeout);
             DeploymentItem.EnumDeploymentItemStatus lastStatus = DeploymentItem.EnumDeploymentItemStatus.Unknown;
@@ -686,8 +700,12 @@ namespace MMDB.Azure.Management
             throw new TimeoutException(string.Format("Timeout (0 seconds) waiting for status {1}, last status {2}", timeout.TotalSeconds, status, lastStatus));
         }
 
-        public DeploymentItem WaitForAllCloudServiceInstanceStatus(string serviceName, string deploymentSlot, RoleInstance.EnumInstanceStatus status, TimeSpan timeout)
+        public DeploymentItem WaitForAllCloudServiceInstanceStatus(string serviceName, string deploymentSlot, RoleInstance.EnumInstanceStatus status, TimeSpan timeout=default(TimeSpan))
         {
+            if(timeout == default(TimeSpan))
+            {
+                timeout = TimeSpan.FromMinutes(5);
+            }
             DateTime start = DateTime.UtcNow;
             DateTime killTime = start.Add(timeout);
             List<RoleInstance.EnumInstanceStatus> lastStatusList = new List<RoleInstance.EnumInstanceStatus>();

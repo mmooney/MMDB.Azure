@@ -33,5 +33,11 @@ namespace MMDB.Azure.Management
         AffinityGroup CreateAffinityGroup(string affinityGroupName, string label=null, string description=null, string location=null);
         AffinityGroup GetAffinityGroup(string affinityGroupName);
         void DeleteAffinityGroup(string affinityGroupName);
+
+        List<DeploymentItem> GetCloudServiceDeploymentList(string serviceName);
+        DeploymentItem CreateCloudServiceDeployment(string serviceName, string blobUrl, string configurationData, string deploymentSlot);
+        DeploymentItem GetCloudServiceDeployment(string serviceName, string deploymentSlot);
+        DeploymentItem WaitForCloudServiceDeploymentStatus(string serviceName, string deploymentSlot, DeploymentItem.EnumDeploymentItemStatus status, TimeSpan timeout=default(TimeSpan));
+        DeploymentItem WaitForAllCloudServiceInstanceStatus(string serviceName, string deploymentSlot, RoleInstance.EnumInstanceStatus status, TimeSpan timeout=default(TimeSpan));
     }
 }
