@@ -6,13 +6,12 @@
     <title>MMDB Solutions, LLC</title>
     <authors>Mike Mooney</authors>
     <owners>Mike Mooney</owners>
-    <licenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</licenseUrl>
-    <projectUrl>http://PROJECT_URL_HERE_OR_DELETE_THIS_LINE</projectUrl>
-    <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
+    <licenseUrl>https://github.com/mmooney/MMDB.Azure/blob/master/LICENSE.txt</licenseUrl>
+    <projectUrl>https://github.com/mmooney/MMDB.Azure</projectUrl>
+    <iconUrl>http://www.gravatar.com/avatar/583bdba0c32e151c9d2eafdd32555c17.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-    <releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
     <copyright>Copyright 2014</copyright>
-    <tags>Tag1 Tag2</tags>
+    <tags>.net mmdb azure management rest api deploy</tags>
   </metadata>
 </package>
