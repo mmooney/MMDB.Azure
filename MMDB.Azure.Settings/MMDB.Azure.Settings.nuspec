@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>MMDB.Azure.Settings</id>
+    <version>$version$</version>
+    <title>MMDB.Azure.Settings</title>
+    <authors>Mike Mooney</authors>
+    <owners>Mike Mooney</owners>
+    <licenseUrl>https://github.com/mmooney/MMDB.Azure/blob/master/LICENSE.txt</licenseUrl>
+    <projectUrl>https://github.com/mmooney/MMDB.Azure</projectUrl>
+    <iconUrl>http://www.gravatar.com/avatar/583bdba0c32e151c9d2eafdd32555c17.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A Really Easy Azure Settings Library</description>
+    <copyright>Copyright 2014</copyright>
+    <tags>.net mmdb azure management rest api deploy</tags>
+  </metadata>
+</package>
