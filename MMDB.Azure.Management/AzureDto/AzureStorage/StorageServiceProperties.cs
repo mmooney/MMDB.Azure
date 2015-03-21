@@ -22,12 +22,16 @@ namespace MMDB.Azure.Management.AzureDto.AzureStorage
 
         public enum EnumStatusOfPrimary
         {
+            [XmlEnum("")]
+            None,
             Available,
             Unavailable
         }
 
         public enum EnumStatusOfSecondary
         {
+            [XmlEnum("")]
+            None,
             Available,
             Unavailable            
         }
@@ -48,6 +52,7 @@ namespace MMDB.Azure.Management.AzureDto.AzureStorage
         public DateTime? LastGeoFailoverTime { get; set; }
         public string GeoSecondaryRegion { get; set; }
         public EnumStatusOfSecondary? StatusOfSecondary { get; set; }
+        
         public DateTime CreationTime { get; set; }
 
         [XmlArray("CustomDomains")]

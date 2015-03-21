@@ -20,6 +20,7 @@ namespace MMDB.Azure.Management
         List<StorageService> GetStorageAccountList();
         bool CheckStorageAccountNameAvailability(string storageAccountName, out string message);
         StorageService CreateStorageAccount(string storageAccountName, string label = null, string location = null, string affinityGroup = null);
+        StorageService GetStorageAccount(string storageAccountName);
         void DeleteStorageAccount(string storageAccountName, bool waitForDelete=false, TimeSpan timeout=default(TimeSpan));
         StorageService WaitForStorageAccountStatus(string storageAccountName, StorageServiceProperties.EnumStorageServiceStatus status, TimeSpan timeout=default(TimeSpan));
 

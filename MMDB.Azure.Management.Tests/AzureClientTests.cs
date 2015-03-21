@@ -426,6 +426,20 @@ namespace MMDB.Azure.Management.Tests
             }
         }
 
+        public class GetStorageAccount
+        {
+            [Test]
+            public void srirachdemo()
+            {
+                var testData = TestData.Create();
+
+                var result = testData.Sut.GetStorageAccount("srirachdemo");
+
+                Assert.IsNotNull(result);
+                
+            }
+        }
+
         public class CreateStorageAccount
         {
             [Test]
